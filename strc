@@ -1,0 +1,45 @@
+frontend/
+├── public/                 # HTML fayllari, statik aktivlar (favicon)
+│   └── index.html
+├── src/
+│   ├── components/         # Umumiy React UI komponentlari (agar kerak bo'lsa)
+│   │   ├── Button.jsx
+│   │   └── Input.jsx
+│   ├── core/               # Loyihaning asosiy mantig'i va global holatlari
+│   │   ├── constants.js    # Barcha global konstantalar, masalan, tool typelar, class typelar
+│   │   ├── data.js         # Loyihaning asosiy ma'lumotlar obyekti, annotatsiyalar ro'yxati, rasm ma'lumotlari va ularni boshqarish logikasi (state)
+│   │   └── AnnotationContext.jsx # Yoki Redux/Zustand kabi holat boshqaruvi
+│   ├── drawing/            # Konva.js bilan chizishga oid barcha mantiq
+│   │   ├── AnnotationDrawer.jsx # Kanvasni va Konva.js komponentlarini render qiluvchi asosiy komponent
+│   │   ├── tools/          # Har bir chizish vositasi uchun mantiq
+│   │   │   ├── useBoxTool.js
+│   │   │   ├── usePolygonTool.js
+│   │   │   ├── useArrowTool.js
+│   │   │   ├── usePointTool.js
+│   │   │   ├── useLineTool.js
+│   │   │   └── useTextTool.js
+│   │   ├── renderers/      # Turli annotatsiya turlarini render qilish funksiyalari
+│   │   │   ├── renderBox.js
+│   │   │   ├── renderPolygon.js
+│   │   │   ├── renderArrow.js
+│   │   │   ├── renderPoint.js
+│   │   │   └── ...
+│   │   └── utils/          # Chizish bilan bog'liq yordamchi funksiyalar (masalan, collision detection, point transformations)
+│   │       └── canvasHelpers.js
+│   ├── panels/             # UI panellari
+│   │   ├── LeftPanel.jsx   # Rasm manbasi, vositalar, sinflar, AI yordami
+│   │   ├── RightPanel.jsx  # Obyekt xususiyatlari, eksport, tarix
+│   │   └── ControlsBar.jsx # Kanvas ustidagi save/export/clear tugmalari
+│   ├── services/           # Backend API chaqiruvlari
+│   │   └── api.js
+│   ├── styles/             # Global CSS va Tailwind konfiguratsiyasi
+│   │   ├── index.css       # Tailwind direktivalari va global uslublar
+│   │   └── tailwind.config.js # Tailwind konfiguratsiyasi
+│   ├── App.jsx             # Asosiy React ilovasi (panellarni va kanvasni birlashtiradi)
+│   ├── main.jsx            # Ilovaning kirish nuqtasi
+│   └── index.css           # Global CSS (bu fayl endi `styles/index.css` ga ko'chiriladi)
+├── .eslintrc.cjs           # ESLint konfiguratsiyasi
+├── .gitignore              # Git tomonidan e'tiborga olinmaydigan fayllar
+├── package.json            # Paketlar va skriptlar
+├── vite.config.js          # Vite konfiguratsiyasi
+└── README.md

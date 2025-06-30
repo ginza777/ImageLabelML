@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 1.html faylidan olingan custom CSS qoidalari */
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 120px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -60px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Rasmning Konva.js stage joylashadigan konteyneri */
+/* FIXED_IMAGE_WIDTH va FIXED_IMAGE_HEIGHT o'lchamlari AnnotationCanvas.jsx da boshqariladi */
+.canvas-container {
+    /* Bu yerda faqat umumiy stilar, position AnnotationCanvas da */
+    /* Border va fon rangi endi AnnotationCanvas ichidagi divda */
+    overflow: hidden; /* Kontent tashqariga chiqmasligi uchun */
+}
+/* #annotationCanvas endi Konva.js Stage tomonidan yaratiladi va uning o'zi stilga ega */
+
+/* Obyekt sinflari va vositalar uchun uslublar */
+.object-class {
+    transition: all 0.2s;
+    border: 1px solid #444; /* To'qroq chegara */
+    border-radius: 0.375rem; /* Tailwind rounded-md ga mos */
+}
+.object-class:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Soya ham to'qroq */
+}
+.selected-tool {
+    background-color: #1d4ed8 !important; /* Tailwind blue-700 ga o'xshash to'qroq ko'k */
+    color: white !important;
+}
+.selected-class {
+    border: 2px solid #3b82f6 !important; /* Tanlangan sinf uchun to'qroq ko'k chegara */
+    transform: scale(1.03); /* Zoom o'rniga scale ishlatdik, layoutni buzmaslik uchun */
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5); /* Qo'shimcha soya */
+}
+.annotation-item:hover {
+    background-color: #444; /* To'qroq hover rangi */
+}
+.resize-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: white;
+    border: 1px solid #1d4ed8;
+    z-index: 10;
+}
+.resize-handle-nw { top: -5px; left: -5px; cursor: nw-resize; }
+.resize-handle-ne { top: -5px; right: -5px; cursor: ne-resize; }
+.resize-handle-sw { bottom: -5px; left: -5px; cursor: sw-resize; }
+.resize-handle-se { bottom: -5px; right: -5px; cursor: se-resize; }
+
+.draggable-point {
+    width: 8px;
+    height: 8px;
+    background-color: white;
+    border: 2px solid #1d4ed8;
+    border-radius: 50%;
+    position: absolute;
+    cursor: move;
+    z-index: 5;
+}
+
+/* Umumiy fon va matn ranglari */
+body {
+    background-color: #1a202c; /* To'qroq fon rangi (Tailwind gray-900) */
+    color: #cbd5e0; /* Matn rangi (Tailwind gray-300) */
+}
+
+/* Asosiy konteyner va panellar uchun to'qroq stil */
+.main-container {
+    background-color: #2d3748; /* Tailwind gray-800 */
+    border: 1px solid #4a5568; /* To'qroq chegara */
+    border-radius: 0.5rem; /* Tailwind rounded-lg */
+}
+
+/* Panellar fonini o'zgartirish */
+/* left-panel, right-panel div'lariga bevosita joylashtirildi */
+
+/* Sarlavhalar va matn ranglari */
+h1, h2 { color: #edf2f7; }
+p, label, span { color: #a0aec0; }
+
+/* Tugmalar uchun to'qroq ranglar (Tailwind defaultlari bilan birlashtirilgan) */
+/* .bg-blue-500 { background-color: #2563eb; } */
+/* .hover\:bg-blue-600:hover { background-color: #1d4ed8; } */
+/* .bg-green-500 { background-color: #16a34a; } */
+/* .hover\:bg-green-600:hover { background-color: #15803d; } */
+/* .bg-red-500 { background-color: #dc2626; } */
+/* .hover\:bg-red-600:hover { background-color: #b91c1c; } */
+
+/* Responsive o'zgarishlar (Yangi layoutga moslab) */
+@media (max-width: 1024px) {
+    .main-container {
+        grid-template-columns: 1fr; /* Kichik ekranlarda bitta ustun */
+    }
+    .lg\:col-span-3, .lg\:col-span-9, .lg\:col-span-10, .lg\:col-span-2, .lg\:col-span-6 {
+        grid-column: span 1 / span 1 !important; /* Barcha lg: col-span-X lar 1 ustun bo'lsin */
+        width: 100% !important;
+        max-width: 100% !important;
+        flex-basis: auto !important; /* Flexbox asosini reset qilish */
+    }
+    .flex-col.lg\:flex-row {
+        flex-direction: column !important;
+    }
+    .canvas-container {
+        width: 100% !important;
+        height: auto !important; /* Balandlikni avtomatik qilib qo'yish */
+        min-height: 400px; /* Minimal balandlik saqlansin */
+    }
+    .max-h-\[30vh\] {
+        max-height: 250px !important; /* History panel balandligi */
+    }
+}

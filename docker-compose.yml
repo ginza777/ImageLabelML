@@ -1,0 +1,18 @@
+# docker-compose.yml
+services:
+  frontend:
+    build: . # Dockerfile shu papkada bo'lgani uchun . ishlatamiz
+    container_name: frontend_app
+    restart: unless-stopped
+
+    # Katalogni konteynerga ulaymiz — live reload va fayl sinxronizatsiyasi uchun
+    volumes:
+      - .:/app # Hozirgi (frontend) papkasini konteynerdagi /app ga ulaymiz
+      - /app/node_modules # node_modules ni hostga ulamaslik uchun
+
+    # Port xaritasi: "host_port:container_port"
+    ports:
+      - "5173:5173"
+
+    environment:
+      - CHOKIDAR_USEPOLLING=true
