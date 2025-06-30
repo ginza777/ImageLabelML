@@ -1,20 +1,20 @@
 // src/drawing/AnnotationCanvas.jsx
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Stage, Layer, Image, Circle, Transformer, Arrow } from 'react-konva';
+import { Stage, Layer, Image, Circle, Transformer, Arrow, Rect } from 'react-konva';
 import { useAnnotation } from '../core/AnnotationContext.jsx';
 import { print_log } from '../data.js';
 import PointDrawer from './tools/PointDrawer';
 import ArrowDrawer from './tools/ArrowDrawer';
+import BoxDrawer from './tools/BoxDrawer';
 
 const AnnotationCanvas = () => {
-  // --- XATO TUZATILDI: Kontekstdan olinadigan o'zgaruvchilar ro'yxati to'liq yozildi ---
   const {
     imageObject,
-    imageStatus, // Bu o'zgaruvchi tushib qolgan edi
+    imageStatus, // Xatolik sababchisi - endi bu yerda
     stageRef,
     activeTool,
-    selectedClass, // Bu o'zgaruvchi ham tushib qolgan edi
+    selectedClass,
     annotations,
     addAnnotation,
     updateAnnotation,
@@ -44,7 +44,7 @@ const AnnotationCanvas = () => {
   }, []);
 
   useEffect(() => {
-    if (transformerRef.current && annotations.length > 0) {
+    if (transformerRef.current) {
       const selectedNode = stageRef.current?.findOne('#' + selectedAnnotationId);
       if (selectedNode) {
         transformerRef.current.nodes([selectedNode]);
@@ -108,9 +108,8 @@ const AnnotationCanvas = () => {
     const annId = Number(node.id());
     const annotation = annotations.find(ann => ann.id === annId);
     if (!annotation || !imageFit || imageFit.scale === 0) return;
-
     let newAttrs = {};
-    if (annotation.tool === 'point') {
+    if (annotation.tool === 'point' || annotation.tool === 'box') {
       const newPos = node.position();
       newAttrs = { x: (newPos.x - imageFit.x) / imageFit.scale, y: (newPos.y - imageFit.y) / imageFit.scale };
     } else {
@@ -121,7 +120,9 @@ const AnnotationCanvas = () => {
       }
     }
     updateAnnotation({ id: annId, ...newAttrs });
-    if (annotation.tool !== 'point') node.position({ x: 0, y: 0 });
+    if (annotation.tool !== 'point' && annotation.tool !== 'box') {
+      node.position({ x: 0, y: 0 });
+    }
     stageRef.current?.batchDraw();
   };
 
@@ -131,10 +132,15 @@ const AnnotationCanvas = () => {
     const annotation = annotations.find(ann => ann.id === annId);
     if (!annotation) return;
 
-    if (annotation.tool === 'point') {
-        const newPos = { x: node.x(), y: node.y() };
-        updateAnnotation({ id: annId, x: (newPos.x - imageFit.x) / imageFit.scale, y: (newPos.y - imageFit.y) / imageFit.scale });
-    }
+    const newAttrs = {
+      x: (node.x() - imageFit.x) / imageFit.scale,
+      y: (node.y() - imageFit.y) / imageFit.scale,
+      width: (node.width() * node.scaleX()) / imageFit.scale,
+      height: (node.height() * node.scaleY()) / imageFit.scale,
+      rotation: node.rotation()
+    };
+
+    updateAnnotation({ id: annId, ...newAttrs });
     node.scaleX(1);
     node.scaleY(1);
   };
@@ -157,6 +163,7 @@ const AnnotationCanvas = () => {
     switch(activeTool) {
       case 'point': return <PointDrawer {...props} />;
       case 'arrow': return <ArrowDrawer {...props} />;
+      case 'box': return <BoxDrawer {...props} />;
       default: return null;
     }
   };
@@ -164,30 +171,13 @@ const AnnotationCanvas = () => {
   return (
     <div ref={containerRef} className="w-full h-full">
       {(imageObject && imageObject.width > 0 && size.width > 0) ? (
-        <Stage
-          width={size.width} height={size.height} ref={stageRef}
-          onMouseDown={handleEvent} onMouseMove={handleEvent}
-          onMouseUp={handleEvent} onClick={handleEvent}
-        >
-          <Layer name="image-layer" listening={!isDrawing}>
-            <Image image={imageObject} name="background-image" width={imageFit.width} height={imageFit.height} x={imageFit.x} y={imageFit.y}/>
-          </Layer>
-          <Layer name="points-layer" listening={!isDrawing}>
-            {annotations.filter(a => a.tool === 'point').map(ann => (
-                <Circle key={ann.id} id={String(ann.id)} x={(ann.x * imageFit.scale) + imageFit.x} y={(ann.y * imageFit.scale) + imageFit.y} radius={5} fill={ann.fill} stroke="white" strokeWidth={ann.id === selectedAnnotationId ? 2 : 1} draggable={true} onDragEnd={handleDragEnd} onTransformEnd={handleTransformEnd} onClick={() => setSelectedAnnotationId(ann.id)} onTap={() => setSelectedAnnotationId(ann.id)} dragBoundFunc={(pos) => keepInBounds(pos, stageRef.current?.findOne('#' + ann.id))}/>
-            ))}
-          </Layer>
-          <Layer name="arrows-layer" listening={!isDrawing}>
-            {annotations.filter(a => a.tool === 'arrow').map(ann => {
-              const isSelected = ann.id === selectedAnnotationId;
-              const screenPoints = [(ann.points[0] * imageFit.scale) + imageFit.x, (ann.points[1] * imageFit.scale) + imageFit.y, (ann.points[2] * imageFit.scale) + imageFit.x, (ann.points[3] * imageFit.scale) + imageFit.y];
-              return (
-                <Arrow key={ann.id} id={String(ann.id)} points={screenPoints} fill={ann.fill} stroke={ann.stroke} strokeWidth={isSelected ? 4 : 2} draggable={true} onDragEnd={handleDragEnd} onTransformEnd={handleTransformEnd} onClick={() => setSelectedAnnotationId(ann.id)} onTap={() => setSelectedAnnotationId(ann.id)} dragBoundFunc={(pos) => keepInBounds(pos, stageRef.current?.findOne('#' + ann.id))}/>
-              );
-            })}
-          </Layer>
+        <Stage width={size.width} height={size.height} ref={stageRef} onMouseDown={handleEvent} onMouseMove={handleEvent} onMouseUp={handleEvent} onClick={handleEvent}>
+          <Layer name="image-layer" listening={!isDrawing}><Image image={imageObject} name="background-image" width={imageFit.width} height={imageFit.height} x={imageFit.x} y={imageFit.y}/></Layer>
+          <Layer name="points-layer" listening={!isDrawing}>{annotations.filter(a => a.tool === 'point').map(ann => <Circle key={ann.id} id={String(ann.id)} x={(ann.x * imageFit.scale) + imageFit.x} y={(ann.y * imageFit.scale) + imageFit.y} radius={5} fill={ann.fill} stroke="white" strokeWidth={ann.id === selectedAnnotationId ? 2 : 1} draggable={true} onDragEnd={handleDragEnd} onTransformEnd={handleTransformEnd} onClick={() => setSelectedAnnotationId(ann.id)} onTap={() => setSelectedAnnotationId(ann.id)} dragBoundFunc={(pos) => keepInBounds(pos, stageRef.current?.findOne('#' + ann.id))}/>)}</Layer>
+          <Layer name="arrows-layer" listening={!isDrawing}>{annotations.filter(a => a.tool === 'arrow').map(ann => { const isSelected = ann.id === selectedAnnotationId; const screenPoints = [(ann.points[0] * imageFit.scale) + imageFit.x, (ann.points[1] * imageFit.scale) + imageFit.y, (ann.points[2] * imageFit.scale) + imageFit.x, (ann.points[3] * imageFit.scale) + imageFit.y]; return <Arrow key={ann.id} id={String(ann.id)} points={screenPoints} fill={ann.fill} stroke={ann.stroke} strokeWidth={isSelected ? 4 : 2} draggable={true} onDragEnd={handleDragEnd} onTransformEnd={handleTransformEnd} onClick={() => setSelectedAnnotationId(ann.id)} onTap={() => setSelectedAnnotationId(ann.id)} dragBoundFunc={(pos) => keepInBounds(pos, stageRef.current?.findOne('#' + ann.id))}/>;})}</Layer>
+          <Layer name="boxes-layer" listening={!isDrawing}>{annotations.filter(a => a.tool === 'box').map(ann => <Rect key={ann.id} id={String(ann.id)} x={(ann.x * imageFit.scale) + imageFit.x} y={(ann.y * imageFit.scale) + imageFit.y} width={ann.width * imageFit.scale} height={ann.height * imageFit.scale} fill={ann.fill} stroke={ann.stroke} strokeWidth={ann.id === selectedAnnotationId ? 4 : 2} draggable={true} onDragEnd={handleDragEnd} onTransformEnd={handleTransformEnd} onClick={() => setSelectedAnnotationId(ann.id)} onTap={() => setSelectedAnnotationId(ann.id)} dragBoundFunc={(pos) => keepInBounds(pos, stageRef.current?.findOne('#' + ann.id))}/>)}</Layer>
           <Layer name="drawer-layer">{renderActiveDrawer()}</Layer>
-          <Layer name="transformer-layer" listening={!isDrawing}><Transformer ref={transformerRef} rotateEnabled={false} /></Layer>
+          <Layer name="transformer-layer" listening={!isDrawing}><Transformer ref={transformerRef} rotateEnabled={false} keepRatio={false} boundBoxFunc={(oldBox, newBox) => (newBox.width < 5 || newBox.height < 5 || newBox.x < imageFit.x || newBox.y < imageFit.y || newBox.x + newBox.width > imageFit.x + imageFit.width || newBox.y + newBox.height > imageFit.y + imageFit.height) ? oldBox : newBox} /></Layer>
         </Stage>
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-gray-800/50 rounded-lg">
