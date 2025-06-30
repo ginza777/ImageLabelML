@@ -1,30 +1,27 @@
 // src/drawing/tools/PointDrawer.jsx
-
 import { useEffect } from 'react';
 import { useAnnotation } from '../../core/AnnotationContext.jsx';
+import { generateId } from '../../data';
 
-const PointDrawer = ({ mouseEvent, imageFit }) => {
+const PointDrawer = ({ mouseEvent, imageFit, onDrawComplete }) => { // onDrawComplete ni qabul qilamiz
   const { activeTool, selectedClass, addAnnotation } = useAnnotation();
 
   useEffect(() => {
-    // Agar sichqoncha hodisasi "click" bo'lsa va uskuna to'g'ri bo'lsa, nuqta qo'shamiz
-    if (mouseEvent?.type !== 'click' || !mouseEvent.payload.empty || activeTool !== 'point') {
-      return;
-    }
-    if (!selectedClass) return; // Sinf tanlanganini tekshiramiz
+    if (!mouseEvent || mouseEvent.type !== 'click' || !mouseEvent.payload.empty || activeTool !== 'point') return;
+    if (!selectedClass) return;
 
     const pos = mouseEvent.payload.pos;
-    const realX = (pos.x - imageFit.x) / imageFit.scale;
-    const realY = (pos.y - imageFit.y) / imageFit.scale;
-
     addAnnotation({
-      id: Date.now(), tool: 'point', class: selectedClass.name,
-      x: realX, y: realY, radius: 5, fill: selectedClass.color,
+      id: generateId(),
+      tool: 'point', class: selectedClass.name,
+      x: (pos.x - imageFit.x) / imageFit.scale,
+      y: (pos.y - imageFit.y) / imageFit.scale,
+      radius: 5, fill: selectedClass.color,
     });
 
-  }, [mouseEvent]); // Effekt faqat 'mouseEvent' o'zgarganda ishga tushadi
+    onDrawComplete(); // <-- Ishimiz tugadi, xabar beramiz
+  }, [mouseEvent, activeTool, selectedClass, imageFit, addAnnotation, onDrawComplete]);
 
-  return null; // Bu komponent ekranga hech narsa chizmaydi
+  return null;
 };
-
 export default PointDrawer;
