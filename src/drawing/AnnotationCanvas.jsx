@@ -8,13 +8,13 @@ import PointDrawer from './tools/PointDrawer';
 import ArrowDrawer from './tools/ArrowDrawer';
 
 const AnnotationCanvas = () => {
+  // --- XATO TUZATILDI: Kontekstdan olinadigan o'zgaruvchilar ro'yxati to'liq yozildi ---
   const {
-    // Kontekstdan olinadigan barcha kerakli o'zgaruvchi va funksiyalar
     imageObject,
-    imageStatus, // Oldin tushib qolgan o'zgaruvchi
+    imageStatus, // Bu o'zgaruvchi tushib qolgan edi
     stageRef,
     activeTool,
-    selectedClass,
+    selectedClass, // Bu o'zgaruvchi ham tushib qolgan edi
     annotations,
     addAnnotation,
     updateAnnotation,
@@ -29,7 +29,6 @@ const AnnotationCanvas = () => {
   const transformerRef = useRef(null);
   const [mouseEvent, setMouseEvent] = useState(null);
 
-  // Konteyner o'lchamini kuzatish uchun
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver(entries => {
@@ -44,9 +43,8 @@ const AnnotationCanvas = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Transformer'ni tanlangan shaklga bog'lash uchun
   useEffect(() => {
-    if (transformerRef.current) {
+    if (transformerRef.current && annotations.length > 0) {
       const selectedNode = stageRef.current?.findOne('#' + selectedAnnotationId);
       if (selectedNode) {
         transformerRef.current.nodes([selectedNode]);
@@ -57,7 +55,6 @@ const AnnotationCanvas = () => {
     }
   }, [selectedAnnotationId, annotations]);
 
-  // O'chirish uchun klaviatura hodisasini kuzatish
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedAnnotationId) {
@@ -69,7 +66,6 @@ const AnnotationCanvas = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedAnnotationId, deleteAnnotation]);
 
-  // Rasm o'lchamlarini konteynerga moslashtirish
   const getImageFitSize = () => {
     if (!imageObject || !imageObject.width || size.width === 0) {
       return { width: 0, height: 0, x: 0, y: 0, scale: 1 };
@@ -84,7 +80,6 @@ const AnnotationCanvas = () => {
 
   const imageFit = getImageFitSize();
 
-  // Sichqoncha hodisalarini ushlab, state'ga yozib borish
   const handleEvent = (e) => {
     if (isDrawing && e.type !== 'mousedown') {
       const pos = e.target.getStage()?.getPointerPosition();
@@ -102,20 +97,18 @@ const AnnotationCanvas = () => {
     }
   };
 
-  // Tanlovni bekor qilish
   useEffect(() => {
     if (mouseEvent?.type === 'click' && mouseEvent?.payload.empty) {
       setSelectedAnnotationId(null);
     }
   }, [mouseEvent]);
 
-  // Shakllarni sudrab bo'lganda ishlaydigan yagona funksiya
   const handleDragEnd = (e) => {
     const node = e.target;
     const annId = Number(node.id());
-    if (!annId) return;
     const annotation = annotations.find(ann => ann.id === annId);
     if (!annotation || !imageFit || imageFit.scale === 0) return;
+
     let newAttrs = {};
     if (annotation.tool === 'point') {
       const newPos = node.position();
@@ -132,24 +125,20 @@ const AnnotationCanvas = () => {
     stageRef.current?.batchDraw();
   };
 
-  // Shakllarni Transformer bilan o'zgartirganda ishlaydigan funksiya
   const handleTransformEnd = (e) => {
     const node = e.target;
     const annId = Number(node.id());
     const annotation = annotations.find(ann => ann.id === annId);
     if (!annotation) return;
 
-    // Hozircha faqat nuqta uchun ishlaydi, kelajakda boshqalarini qo'shamiz
     if (annotation.tool === 'point') {
         const newPos = { x: node.x(), y: node.y() };
         updateAnnotation({ id: annId, x: (newPos.x - imageFit.x) / imageFit.scale, y: (newPos.y - imageFit.y) / imageFit.scale });
     }
-
     node.scaleX(1);
     node.scaleY(1);
   };
 
-  // Chegarada ushlab turuvchi funksiyalar
   const keepInBounds = (pos, node) => {
     if (!node || !imageFit) return pos;
     const box = node.getClientRect({ skipTransform: true });
@@ -163,7 +152,6 @@ const AnnotationCanvas = () => {
     return { x: newX, y: newY };
   };
 
-  // Faol "chizuvchi" komponentni render qilish
   const renderActiveDrawer = () => {
     const props = { mouseEvent, imageFit };
     switch(activeTool) {
@@ -176,21 +164,26 @@ const AnnotationCanvas = () => {
   return (
     <div ref={containerRef} className="w-full h-full">
       {(imageObject && imageObject.width > 0 && size.width > 0) ? (
-        <Stage width={size.width} height={size.height} ref={stageRef} onMouseDown={handleEvent} onMouseMove={handleEvent} onMouseUp={handleEvent} onClick={handleEvent}>
+        <Stage
+          width={size.width} height={size.height} ref={stageRef}
+          onMouseDown={handleEvent} onMouseMove={handleEvent}
+          onMouseUp={handleEvent} onClick={handleEvent}
+        >
           <Layer name="image-layer" listening={!isDrawing}>
             <Image image={imageObject} name="background-image" width={imageFit.width} height={imageFit.height} x={imageFit.x} y={imageFit.y}/>
           </Layer>
-          <Layer name="annotations-layer" listening={!isDrawing}>
-            {annotations.map(ann => {
+          <Layer name="points-layer" listening={!isDrawing}>
+            {annotations.filter(a => a.tool === 'point').map(ann => (
+                <Circle key={ann.id} id={String(ann.id)} x={(ann.x * imageFit.scale) + imageFit.x} y={(ann.y * imageFit.scale) + imageFit.y} radius={5} fill={ann.fill} stroke="white" strokeWidth={ann.id === selectedAnnotationId ? 2 : 1} draggable={true} onDragEnd={handleDragEnd} onTransformEnd={handleTransformEnd} onClick={() => setSelectedAnnotationId(ann.id)} onTap={() => setSelectedAnnotationId(ann.id)} dragBoundFunc={(pos) => keepInBounds(pos, stageRef.current?.findOne('#' + ann.id))}/>
+            ))}
+          </Layer>
+          <Layer name="arrows-layer" listening={!isDrawing}>
+            {annotations.filter(a => a.tool === 'arrow').map(ann => {
               const isSelected = ann.id === selectedAnnotationId;
-              if (ann.tool === 'point') {
-                return <Circle key={ann.id} id={String(ann.id)} x={(ann.x * imageFit.scale) + imageFit.x} y={(ann.y * imageFit.scale) + imageFit.y} radius={5} fill={ann.fill} stroke="white" strokeWidth={isSelected ? 2 : 1} draggable={true} onDragEnd={handleDragEnd} onTransformEnd={handleTransformEnd} onClick={() => setSelectedAnnotationId(ann.id)} onTap={() => setSelectedAnnotationId(ann.id)} dragBoundFunc={(pos) => keepInBounds(pos, stageRef.current?.findOne('#' + ann.id))}/>;
-              }
-              if (ann.tool === 'arrow') {
-                const screenPoints = [(ann.points[0] * imageFit.scale) + imageFit.x, (ann.points[1] * imageFit.scale) + imageFit.y, (ann.points[2] * imageFit.scale) + imageFit.x, (ann.points[3] * imageFit.scale) + imageFit.y];
-                return <Arrow key={ann.id} id={String(ann.id)} points={screenPoints} fill={ann.fill} stroke={ann.stroke} strokeWidth={isSelected ? 4 : 2} draggable={true} onDragEnd={handleDragEnd} onTransformEnd={handleTransformEnd} onClick={() => setSelectedAnnotationId(ann.id)} onTap={() => setSelectedAnnotationId(ann.id)} dragBoundFunc={(pos) => keepInBounds(pos, stageRef.current?.findOne('#' + ann.id))}/>;
-              }
-              return null;
+              const screenPoints = [(ann.points[0] * imageFit.scale) + imageFit.x, (ann.points[1] * imageFit.scale) + imageFit.y, (ann.points[2] * imageFit.scale) + imageFit.x, (ann.points[3] * imageFit.scale) + imageFit.y];
+              return (
+                <Arrow key={ann.id} id={String(ann.id)} points={screenPoints} fill={ann.fill} stroke={ann.stroke} strokeWidth={isSelected ? 4 : 2} draggable={true} onDragEnd={handleDragEnd} onTransformEnd={handleTransformEnd} onClick={() => setSelectedAnnotationId(ann.id)} onTap={() => setSelectedAnnotationId(ann.id)} dragBoundFunc={(pos) => keepInBounds(pos, stageRef.current?.findOne('#' + ann.id))}/>
+              );
             })}
           </Layer>
           <Layer name="drawer-layer">{renderActiveDrawer()}</Layer>
