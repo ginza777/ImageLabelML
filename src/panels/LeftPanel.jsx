@@ -22,12 +22,17 @@ function LeftPanel() {
     const [newClassName, setNewClassName] = useState('');
     const [newClassColor, setNewClassColor] = useState('#ffffff');
     const [newClassToolType, setNewClassToolType] = useState('box');
-    const [newClassIcon, setNewClassIcon] = useState(availableToolIcons.find(t => t.type === 'box')?.icon || faSquare);
     const [urlInput, setUrlInput] = useState('');
 
+    const [newClassIcon, setNewClassIcon] = useState(
+        availableToolIcons?.find(t => t.type === 'box')?.icon || faSquare
+    );
+
     useEffect(() => {
-        const selectedTool = availableToolIcons.find(t => t.type === newClassToolType);
-        if (selectedTool) setNewClassIcon(selectedTool.icon);
+        if (availableToolIcons) {
+            const selectedTool = availableToolIcons.find(t => t.type === newClassToolType);
+            if (selectedTool) setNewClassIcon(selectedTool.icon);
+        }
     }, [newClassToolType, availableToolIcons]);
 
     const handleClassClick = (classObj) => handleSelectClass(classObj);
@@ -40,7 +45,7 @@ function LeftPanel() {
             alert('Iltimos, yangi sinfning barcha maydonlarini to\'ldiring.');
             return;
         }
-        if (objectClasses.some(cls => cls.name.toLowerCase() === newClassName.trim().toLowerCase())) {
+        if (objectClasses?.some(cls => cls.name.toLowerCase() === newClassName.trim().toLowerCase())) {
             alert('Bu nomdagi sinf allaqachon mavjud.');
             return;
         }
@@ -68,12 +73,12 @@ function LeftPanel() {
                     </div>
                 </div>
                 <div className="space-y-2">
-                    {objectClasses.map((cls) => (
+                    {/* --- XATOLIK TUZATILGAN QATOR --- */}
+                    {objectClasses?.map((cls) => (
                         <div key={cls.name} className={`flex items-center p-2 border rounded-md cursor-pointer transition ${selectedClass?.name === cls.name ? 'selected-class' : 'border-transparent'}`} style={{ backgroundColor: selectedClass?.name === cls.name ? '' : `${cls.color}33`, borderColor: selectedClass?.name === cls.name ? '' : cls.color, }} onClick={() => handleClassClick(cls)}>
                             <div className="w-4 h-4 rounded-full mr-3" style={{backgroundColor: cls.color}}></div>
                             <div className="flex-1 flex items-center justify-between">
                                 <span className="text-gray-200 font-medium">{cls.name}</span>
-                                {/* --- USKUNA NOMI SHU YERDA QO'SHILDI --- */}
                                 <span className="text-xs text-gray-500 bg-gray-700/50 px-1.5 py-0.5 rounded-md">{cls.tool}</span>
                             </div>
                             <FontAwesomeIcon icon={cls.icon} className="ml-3 mr-3 text-gray-400"/>
@@ -82,6 +87,23 @@ function LeftPanel() {
                     ))}
                 </div>
 
+                {showNewClassForm && (
+                   <div className="mt-4 bg-gray-800/50 p-3 rounded-md border border-gray-700">
+                       <h3 className="text-lg font-semibold mb-2 text-gray-300">Add New Class</h3>
+                       <input type="text" placeholder="New class name" className="w-full border border-gray-600 rounded-md px-2 py-1.5 text-sm bg-gray-700 text-gray-300 mb-2" value={newClassName} onChange={(e) => setNewClassName(e.target.value)} />
+                       <div className="flex items-center mb-2">
+                           <label className="text-sm font-medium text-gray-400 mr-2">Color:</label>
+                           <input type="color" value={newClassColor} onChange={(e) => setNewClassColor(e.target.value)} className="w-8 h-8 rounded border-none bg-gray-700 cursor-pointer" />
+                       </div>
+                       <div className="mb-3">
+                           <label className="block text-sm font-medium text-gray-400 mb-1">Default Tool:</label>
+                           <select className="w-full border border-gray-600 rounded-md px-2 py-1.5 text-sm bg-gray-700 text-gray-300" value={newClassToolType} onChange={(e) => setNewClassToolType(e.target.value)}>
+                               {availableToolIcons?.map(tool => (<option key={tool.type} value={tool.type}>{tool.name}</option>))}
+                           </select>
+                       </div>
+                       <button onClick={handleAddClass} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded-md transition">Add Class</button>
+                   </div>
+                )}
             </div>
             <div className="border border-gray-700 rounded-md p-4">
                 <h2 className="text-xl font-semibold mb-3 text-gray-100">Image Source</h2>

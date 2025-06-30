@@ -3,7 +3,7 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAnnotation } from '../core/AnnotationContext.jsx';
-import { print_log } from '../data.js'; // print_log ni import qilamiz
+import { print_log } from '../data.js';
 
 function AnnotationTools() {
   const { availableToolIcons, activeTool, setActiveTool } = useAnnotation();
@@ -15,7 +15,9 @@ function AnnotationTools() {
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      {availableToolIcons.map((tool) => (
+      {/* --- XATOLIK TUZATILGAN QATOR --- */}
+      {/* "availableToolIcons" dan keyin "?" belgisi qo'shildi */}
+      {availableToolIcons?.map((tool) => (
         <button
           key={tool.type}
           className={`p-2 border rounded-md transition text-center flex items-center justify-center ${
