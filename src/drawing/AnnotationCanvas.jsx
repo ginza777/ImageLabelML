@@ -96,7 +96,7 @@ const AnnotationCanvas = () => {
     }
     const isEmptyClick = e.target === e.target.getStage() || e.target.name() === 'image-layer';
     setMouseEvent({ type: e.type, payload: { pos, empty: isEmptyClick } });
-    print_log("Sichqoncha hodisasi:", { type: e.type, pos, empty: isEmptyClick });
+    // print_log("Sichqoncha hodisasi:", { type: e.type, pos, empty: isEmptyClick });
   };
 
   useEffect(() => {
