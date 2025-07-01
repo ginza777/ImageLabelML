@@ -5,6 +5,7 @@ import React from 'react';
 import { AnnotationProvider } from './core/AnnotationContext.jsx';
 import LeftPanel from './panels/LeftPanel.jsx';
 import DirectionSelector from './panels/DirectionSelector.jsx'; // Object Properties va Export Options uchun
+import RelationSelector from './panels/RelationSelector.jsx'; // Object Properties va Export Options uchun
 import AnnotationCanvas from './drawing/AnnotationCanvas.jsx';
 import HistoryPanel from './panels/HistoryPanel.jsx'; // Annotation History va Clear All uchun
 import AnnotationTools from './panels/AnnotationTools.jsx'; // Annotation Tools uchun
@@ -47,8 +48,12 @@ function App() {
                         <div
                             className="flex-1 bg-gray-800 p-4 rounded-lg shadow-lg flex flex-col items-center justify-center min-h-[600px]">
                             <AnnotationCanvas/>
-                            <DirectionSelector/> {/* RASM OSTIDA */}
+                            <div className="flex flex-row gap-2 w-full justify-center mt-3 mb-1">
+                                <DirectionSelector/>
+                                <RelationSelector/>
+                            </div>
                         </div>
+
 
                         {/* Tools */}
                         <div
