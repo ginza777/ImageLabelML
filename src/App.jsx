@@ -4,7 +4,7 @@ import React from 'react';
 // Context va komponentlar importi
 import { AnnotationProvider } from './core/AnnotationContext.jsx';
 import LeftPanel from './panels/LeftPanel.jsx';
-import RightPanel from './panels/RightPanel.jsx'; // Object Properties va Export Options uchun
+import DirectionSelector from './panels/DirectionSelector.jsx'; // Object Properties va Export Options uchun
 import AnnotationCanvas from './drawing/AnnotationCanvas.jsx';
 import HistoryPanel from './panels/HistoryPanel.jsx'; // Annotation History va Clear All uchun
 import AnnotationTools from './panels/AnnotationTools.jsx'; // Annotation Tools uchun
@@ -45,9 +45,11 @@ function App() {
                         </div>
                         {/* Canvas */}
                         <div
-                            className="flex-1 bg-gray-800 p-4 rounded-lg shadow-lg flex items-center justify-center min-h-[600px]">
+                            className="flex-1 bg-gray-800 p-4 rounded-lg shadow-lg flex flex-col items-center justify-center min-h-[600px]">
                             <AnnotationCanvas/>
+                            <DirectionSelector/> {/* RASM OSTIDA */}
                         </div>
+
                         {/* Tools */}
                         <div
                             className="w-full lg:w-1/5 bg-gray-800 p-4 rounded-lg shadow-lg flex-shrink-0 flex flex-col items-center gap-6">

@@ -1,6 +1,6 @@
 // src/core/AnnotationContext.jsx
-import React, {createContext, useContext, useState, useRef} from 'react';
-import {initialObjectClasses, availableToolIcons, print_log} from '../data.js';
+import React, { createContext, useContext, useState, useRef } from 'react';
+import { initialObjectClasses, availableToolIcons, print_log } from '../data.js';
 
 const AnnotationContext = createContext(null);
 
@@ -10,7 +10,7 @@ export const useAnnotation = () => {
     return context;
 };
 
-export function AnnotationProvider({children}) {
+export function AnnotationProvider({ children }) {
     const [annotations, setAnnotations] = useState([]);
     const [selectedAnnotationId, setSelectedAnnotationId] = useState(null);
     const [imageObject, setImageObject] = useState(null);
@@ -23,15 +23,21 @@ export function AnnotationProvider({children}) {
     const [selectedClass, setSelectedClass] = useState(() => initialObjectClasses.find(cls => cls.isActive) || null);
     const [activeTool, setActiveTool] = useState(() => (initialObjectClasses.find(cls => cls.isActive)?.tool) || 'select');
 
+    // Annotation qo‘shish
     const addAnnotation = (newAnnotation) => setAnnotations(prev => [...prev, newAnnotation]);
+    // Annotation yangilash (shu jumladan direction, class, etc)
     const updateAnnotation = (updatedAttrs) => {
-        setAnnotations(prev => prev.map(ann => (ann.id === updatedAttrs.id ? {...ann, ...updatedAttrs} : ann)));
+        setAnnotations(prev =>
+            prev.map(ann => (ann.id === updatedAttrs.id ? { ...ann, ...updatedAttrs } : ann))
+        );
     };
+    // Annotation o‘chirish
     const deleteAnnotation = (annotationId) => {
         if (!annotationId) return;
         setAnnotations(prev => prev.filter(ann => ann.id !== annotationId));
         setSelectedAnnotationId(null);
     };
+    // Object Classlar
     const addObjectClass = (newClass) => setObjectClasses(prev => [...prev, newClass]);
     const deleteObjectClass = (className) => {
         setObjectClasses(prev => prev.filter(cls => cls.name !== className));
@@ -46,20 +52,24 @@ export function AnnotationProvider({children}) {
             setActiveTool('select');
         }
     };
+    // Barchasini tozalash
     const clearAllAnnotations = () => {
         setAnnotations([]);
-        setSelectedAnnotationId(null); // agar mavjud bo‘lsa
+        setSelectedAnnotationId(null);
     };
+
+    // Rasm yuklash - avtomatik annotatsiyalarni o‘chiradi
     const loadImage = async (source) => {
         print_log("Rasm yuklash boshlandi...");
         setImageStatus('loading');
         setImageError('');
         setImageObject(null);
+        clearAllAnnotations(); // <-- har doim rasm yuklaganda annotatsiyalar tozalansin!
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
         try {
             const imageUrl = source instanceof File ? URL.createObjectURL(source) : source;
-            const response = await fetch(imageUrl, {signal: controller.signal});
+            const response = await fetch(imageUrl, { signal: controller.signal });
             clearTimeout(timeoutId);
             if (!response.ok) throw new Error(`Server xatoligi: ${response.status}`);
             const blob = await response.blob();
@@ -89,13 +99,11 @@ export function AnnotationProvider({children}) {
         selectedClass, handleSelectClass,
         activeTool, setActiveTool,
         availableToolIcons, stageRef,
-        isDrawing, setIsDrawing, clearAllAnnotations,setAnnotations
+        isDrawing, setIsDrawing, clearAllAnnotations, setAnnotations
     };
 
     return (
-        <AnnotationContext.Provider value={
-            contextValue
-        }>
+        <AnnotationContext.Provider value={contextValue}>
             {children}
         </AnnotationContext.Provider>
     );
