@@ -3,7 +3,7 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAnnotation } from '../core/AnnotationContext.jsx';
-import { print_log } from '../data.js';
+import { print_log } from '../utils/helpers.js';
 
 function AnnotationTools() {
   const { availableToolIcons, activeTool, setActiveTool } = useAnnotation();

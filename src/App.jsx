@@ -3,9 +3,13 @@ import { AnnotationProvider } from './core/AnnotationContext.jsx';
 import LeftPanel from './panels/LeftPanel.jsx';
 import DirectionSelector from './panels/DirectionSelector.jsx';
 import RelationSelector from './panels/RelationSelector.jsx';
-import AnnotationCanvas from './drawing/AnnotationCanvas.jsx';
+import AnnotationCanvas from './drawing/canvas/AnnotationCanvas.jsx'; // Figurali qavslarsiz!
 import HistoryPanel from './panels/HistoryPanel.jsx';
 import AnnotationTools from './panels/AnnotationTools.jsx';
+import SelectTool from './drawing/tools/SelectTool.jsx';
+import HotkeyHandler from './components/HotkeyHandler.jsx';
+import ExportManager from './components/ExportManager.jsx';
+
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -33,10 +37,12 @@ function App() {
             <h1 className="text-3xl font-bold text-blue-400">Road Object Annotation Tool</h1>
             <p className="text-gray-400">For autonomous vehicle detection systems</p>
           </header>
+
           <div className="main-container flex flex-col lg:flex-row gap-4 w-full">
             <div className="w-full lg:w-1/5 bg-gray-800 p-4 rounded-lg shadow-lg flex-shrink-0">
               <LeftPanel />
             </div>
+
             <div className="flex-1 bg-gray-800 p-4 rounded-lg shadow-lg flex flex-col items-center justify-center min-h-[600px]">
               <AnnotationCanvas />
               <div className="flex flex-row gap-2 w-full justify-center mt-3 mb-1">
@@ -44,6 +50,7 @@ function App() {
                 <RelationSelector />
               </div>
             </div>
+
             <div className="w-full lg:w-1/5 bg-gray-800 p-4 rounded-lg shadow-lg flex-shrink-0 flex flex-col items-center gap-6">
               <div className="w-full">
                 <h2 className="text-xl font-semibold mb-3 text-gray-100">Tools</h2>
@@ -51,6 +58,7 @@ function App() {
               </div>
               <div className="w-full mt-4">
                 <HistoryPanel />
+                <HotkeyHandler />
               </div>
             </div>
           </div>

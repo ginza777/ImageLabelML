@@ -1,105 +1,106 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Rect } from 'react-konva';
-import { useAnnotation } from '../../core/AnnotationContext.jsx';
-import { generateId, print_log } from '../../data.js';
+// src/drawing/tools/BoxDrawer.jsx
+import React, { useEffect, useState, useContext, useRef } from "react"; // useRef import qilindi
+import { Rect } from "react-konva";
+import { AnnotationContext } from "../../core/AnnotationContext";
+import { generateId } from "../../utils/helpers";
 
-const BoxDrawer = ({ mouseEvent, imageFit, selectedClass, onDrawComplete }) => {
-  const { activeTool, addAnnotation, setIsDrawing } = useAnnotation();
-  const [newBox, setNewBox] = useState(null);
-  const isDrawingRef = useRef(false);
-  const startPointRef = useRef({ x: 0, y: 0 });
+const BoxDrawer = ({ stageRef, annotationsLayerRef }) => {
+  const {
+    activeTool,
+    selectedClass,
+    imageUrl,
+    addAnnotation,
+  } = useContext(AnnotationContext);
+
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [box, setBox] = useState(null);
+  const startPointRef = useRef({ x: 0, y: 0 }); // --- TUZATISH: Boshlang'ich nuqtani saqlash uchun useRef ishlatamiz
 
   useEffect(() => {
-    if (activeTool !== 'box' || !mouseEvent || !imageFit || imageFit.scale === 0 || !selectedClass) {
-      if (isDrawingRef.current) {
-        isDrawingRef.current = false;
-        setIsDrawing(false);
-        setNewBox(null);
-        print_log("Box drawing cancelled: invalid state");
-      }
+    if (activeTool !== 'box') {
+      setIsDrawing(false);
+      setBox(null);
       return;
     }
 
-    const { type, payload } = mouseEvent;
-    const pos = payload.pos;
-    let currentXInImage = (pos.x - imageFit.x) / imageFit.scale;
-    let currentYInImage = (pos.y - imageFit.y) / imageFit.scale;
-    currentXInImage = Math.max(0, Math.min(currentXInImage, imageFit.width / imageFit.scale));
-    currentYInImage = Math.max(0, Math.min(currentYInImage, imageFit.height / imageFit.scale));
+    const stage = stageRef.current;
+    const layer = annotationsLayerRef.current;
+    if (!stage || !layer || !selectedClass) return;
 
-    if (type === 'mousedown' && payload.empty && pos.x >= imageFit.x && pos.x <= imageFit.x + imageFit.width && pos.y >= imageFit.y && pos.y <= imageFit.y + imageFit.height) {
-      isDrawingRef.current = true;
+    const handleMouseDown = (e) => {
+      if (e.target !== stage) return;
       setIsDrawing(true);
-      startPointRef.current = { x: currentXInImage, y: currentYInImage };
-      setNewBox({
-        x: currentXInImage,
-        y: currentYInImage,
-        width: 0,
-        height: 0,
-        fill: `${selectedClass.color}4D`,
-        stroke: selectedClass.color,
-        strokeWidth: 2
+      // --- TUZATISH: Boshlang'ich nuqtani ref.current ga saqlaymiz
+      startPointRef.current = layer.getRelativePointerPosition() || { x: 0, y: 0 };
+      setBox({ x: startPointRef.current.x, y: startPointRef.current.y, width: 0, height: 0 });
+    };
+
+    const handleMouseMove = (e) => {
+      if (!isDrawing) return;
+      const currentPoint = layer.getRelativePointerPosition() || { x: 0, y: 0 };
+      // --- TUZATISH: ref.current dan to'g'ri boshlang'ich nuqtani olamiz
+      setBox({
+        x: startPointRef.current.x,
+        y: startPointRef.current.y,
+        width: currentPoint.x - startPointRef.current.x,
+        height: currentPoint.y - startPointRef.current.y,
       });
-      print_log("Box drawing started:", { x: currentXInImage, y: currentYInImage });
-    } else if (type === 'mousemove' && isDrawingRef.current && newBox) {
-      const startX = startPointRef.current.x;
-      const startY = startPointRef.current.y;
-      const newWidth = currentXInImage - startX;
-      const newHeight = currentYInImage - startY;
-      const x = newWidth < 0 ? currentXInImage : startX;
-      const y = newHeight < 0 ? currentYInImage : startY;
-      setNewBox({
-        ...newBox,
-        x, y,
-        width: Math.abs(newWidth),
-        height: Math.abs(newHeight)
-      });
-    } else if (type === 'mouseup' && isDrawingRef.current && newBox) {
-      isDrawingRef.current = false;
+    };
+
+    const handleMouseUp = () => {
+      if (!isDrawing || !box) return;
       setIsDrawing(false);
-      const minSizeInImage = 5 / imageFit.scale;
-      const startX = startPointRef.current.x;
-      const startY = startPointRef.current.y;
-      const finalX = Math.max(0, Math.min(Math.min(startX, currentXInImage), imageFit.width / imageFit.scale));
-      const finalY = Math.max(0, Math.min(Math.min(startY, currentYInImage), imageFit.height / imageFit.scale));
-      const finalWidth = Math.min(Math.abs(currentXInImage - startX), imageFit.width / imageFit.scale - finalX);
-      const finalHeight = Math.min(Math.abs(currentYInImage - startY), imageFit.height / imageFit.scale - finalY);
 
-      if (finalWidth > minSizeInImage && finalHeight > minSizeInImage) {
-        const newAnnotation = {
-          id: generateId(),
-          tool: 'box',
-          class: selectedClass.name,
-          x: finalX,
-          y: finalY,
-          width: finalWidth,
-          height: finalHeight,
-          fill: `${selectedClass.color}4D`,
-          stroke: selectedClass.color,
-          strokeWidth: 2
-        };
-        addAnnotation(newAnnotation);
-        print_log("Box added:", { x: finalX, y: finalY, width: finalWidth, height: finalHeight });
+      if (Math.abs(box.width) < 5 || Math.abs(box.height) < 5) {
+        setBox(null);
+        return;
       }
-      setNewBox(null);
-      onDrawComplete();
-    }
-  }, [mouseEvent, activeTool, selectedClass, imageFit, addAnnotation, setIsDrawing, onDrawComplete]);
 
-  if (newBox && selectedClass && imageFit && imageFit.scale > 0) {
-    return (
-      <Rect
-        x={(newBox.x * imageFit.scale) + imageFit.x}
-        y={(newBox.y * imageFit.scale) + imageFit.y}
-        width={newBox.width * imageFit.scale}
-        height={newBox.height * imageFit.scale}
-        fill={newBox.fill}
-        stroke={newBox.stroke}
-        strokeWidth={newBox.strokeWidth}
-      />
-    );
-  }
-  return null;
+      const normalizedBox = {
+        x: box.width > 0 ? box.x : box.x + box.width,
+        y: box.height > 0 ? box.y : box.y + box.height,
+        width: Math.abs(box.width),
+        height: Math.abs(box.height),
+      };
+
+      const annotation = {
+        id: generateId(),
+        type: "box",
+        ...normalizedBox,
+        class: selectedClass.name,
+        color: selectedClass.color,
+        imageId: imageUrl,
+      };
+
+      addAnnotation(annotation);
+      setBox(null);
+    };
+
+    stage.on("mousedown", handleMouseDown);
+    stage.on("mousemove", handleMouseMove);
+    stage.on("mouseup", handleMouseUp);
+
+    return () => {
+      stage.off("mousedown", handleMouseDown);
+      stage.off("mousemove", handleMouseMove);
+      stage.off("mouseup", handleMouseUp);
+    };
+  }, [activeTool, isDrawing, box, selectedClass, imageUrl, addAnnotation, stageRef, annotationsLayerRef]);
+
+  if (!box) return null;
+
+  return (
+    <Rect
+      x={box.x}
+      y={box.y}
+      width={box.width}
+      height={box.height}
+      stroke={selectedClass?.color || "blue"}
+      strokeWidth={2}
+      dash={[4, 4]}
+      listening={false}
+    />
+  );
 };
 
 export default BoxDrawer;

@@ -1,130 +1,118 @@
-import React, { useEffect, useRef } from 'react';
+// src/drawing/tools/PolygonDrawer.jsx
+import React, { useState, useEffect, useContext } from 'react';
 import { Line, Circle } from 'react-konva';
-import { useAnnotation } from '../../core/AnnotationContext.jsx';
-import { generateId, print_log } from '../../data.js';
+import { AnnotationContext } from '../../core/AnnotationContext';
+import { generateId } from '../../utils/helpers';
 
-const PolygonDrawer = ({ mouseEvent, imageFit, selectedClass, onDrawComplete }) => {
-  const { activeTool, addAnnotation, setIsDrawing, setActiveTool } = useAnnotation();
-  const pointsRef = useRef([]);
-  const mousePosRef = useRef({ x: 0, y: 0 });
-  const isDrawingRef = useRef(false);
+const PolygonDrawer = ({ stageRef, annotationsLayerRef }) => {
+    const {
+        activeTool,
+        selectedClass,
+        imageUrl,
+        addAnnotation,
+        isDrawing,
+        setIsDrawing
+    } = useContext(AnnotationContext);
 
-  const finalizePolygon = (isClosed) => {
-    if (pointsRef.current.length < 3) {
-      pointsRef.current = [];
-      mousePosRef.current = { x: 0, y: 0 };
-      isDrawingRef.current = false;
-      setIsDrawing(false);
-      onDrawComplete();
-      print_log("Polygon chizish bekor qilindi: yetarlicha nuqta yo‘q");
-      return;
-    }
-    const realPoints = pointsRef.current.flatMap(p => [p.x, p.y]);
-    const newAnnotation = {
-      id: generateId(),
-      tool: 'polygon',
-      class: selectedClass.name,
-      points: realPoints,
-      closed: isClosed,
-      fill: `${selectedClass.color}4D`,
-      stroke: selectedClass.color,
-      strokeWidth: 2
-    };
-    addAnnotation(newAnnotation);
-    pointsRef.current = [];
-    mousePosRef.current = { x: 0, y: 0 };
-    isDrawingRef.current = false;
-    setIsDrawing(false);
-    setActiveTool('select');
-    onDrawComplete();
-    print_log("Polygon qo‘shildi:", { isClosed, points: realPoints });
-  };
+    const [points, setPoints] = useState([]);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-  useEffect(() => {
-    if (activeTool !== 'polygon' || !mouseEvent || !imageFit || imageFit.scale === 0 || !selectedClass) {
-      if (isDrawingRef.current) {
-        isDrawingRef.current = false;
-        setIsDrawing(false);
-        pointsRef.current = [];
-        mousePosRef.current = { x: 0, y: 0 };
-        print_log("Polygon chizish bekor qilindi: noto‘g‘ri holat");
-      }
-      return;
-    }
+    // Asbob o'zgarganda chizishni tozalash
+    useEffect(() => {
+        if (activeTool !== 'polygon') {
+            setPoints([]);
+            if (isDrawing) setIsDrawing(false);
+        }
+    }, [activeTool]);
 
-    const { type, payload } = mouseEvent;
-    const pos = payload.pos;
-    const currentXInImage = Math.max(0, Math.min((pos.x - imageFit.x) / imageFit.scale, imageFit.width / imageFit.scale));
-    const currentYInImage = Math.max(0, Math.min((pos.y - imageFit.y) / imageFit.scale, imageFit.height / imageFit.scale));
+    useEffect(() => {
+        const stage = stageRef.current;
+        const layer = annotationsLayerRef.current;
+        if (!stage || !layer || activeTool !== 'polygon') return;
 
-    if (type === 'mousedown' && payload.empty && pos.x >= imageFit.x && pos.x <= imageFit.x + imageFit.width && pos.y >= imageFit.y && pos.y <= imageFit.y + imageFit.height) {
-      if (!isDrawingRef.current) {
-        isDrawingRef.current = true;
-        setIsDrawing(true);
-      }
-      if (pointsRef.current.length >= 3 && Math.sqrt(Math.pow(currentXInImage - pointsRef.current[0].x, 2) + Math.pow(currentYInImage - pointsRef.current[0].y, 2)) < (15 / imageFit.scale)) {
-        finalizePolygon(true);
-      } else {
-        pointsRef.current = [...pointsRef.current, { x: currentXInImage, y: currentYInImage }];
-        mousePosRef.current = { x: currentXInImage, y: currentYInImage };
-        print_log("Polygon nuqtasi qo‘shildi:", { x: currentXInImage, y: currentYInImage });
-      }
-    } else if (type === 'mousemove' && isDrawingRef.current) {
-      mousePosRef.current = { x: currentXInImage, y: currentYInImage };
-    } else if (type === 'dblclick' && isDrawingRef.current) {
-      finalizePolygon(true);
-    } else if (type === 'contextmenu' && isDrawingRef.current) {
-      finalizePolygon(false);
-      payload.evt.preventDefault();
-      print_log("Polygon o‘ng sichqoncha bilan yakunlandi");
-    }
-  }, [mouseEvent, activeTool, selectedClass, imageFit, setIsDrawing, setActiveTool, onDrawComplete]);
+        const getRelativePos = () => layer.getRelativePointerPosition() || { x: 0, y: 0 };
 
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape' && isDrawingRef.current) {
-        isDrawingRef.current = false;
-        setIsDrawing(false);
-        pointsRef.current = [];
-        mousePosRef.current = { x: 0, y: 0 };
-        setActiveTool('select');
-        onDrawComplete();
-        print_log("Polygon chizish Escape tugmasi orqali bekor qilindi");
-      }
-    };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [onDrawComplete, setIsDrawing, setActiveTool]);
+        const finishDrawing = () => {
+            if (points.length <= 4) {
+                setIsDrawing(false);
+                setPoints([]);
+                return;
+            };
+            const finalPoints = points.flat();
+            const annotation = {
+                id: generateId(),
+                type: 'polygon',
+                points: finalPoints,
+                class: selectedClass.name,
+                color: selectedClass.color,
+                imageId: imageUrl,
+            };
+            addAnnotation(annotation);
+            setIsDrawing(false);
+            setPoints([]);
+        }
 
-  if (!selectedClass || activeTool !== 'polygon') return null;
+        const handleClick = (e) => {
+            if (e.target !== stage) return;
+            const pos = getRelativePos();
+            if (isDrawing && points.length > 4 && Math.hypot(points[0] - pos.x, points[1] - pos.y) < 10) {
+                finishDrawing();
+            } else {
+                if (!isDrawing) setIsDrawing(true);
+                setPoints(prev => [...prev, pos.x, pos.y]);
+            }
+        };
 
-  const displayPoints = pointsRef.current.flatMap(p => [(p.x * imageFit.scale) + imageFit.x, (p.y * imageFit.scale) + imageFit.y]);
-  const currentLinePoints = displayPoints.concat([(mousePosRef.current.x * imageFit.scale) + imageFit.x, (mousePosRef.current.y * imageFit.scale) + imageFit.y]);
+        const handleMouseMove = () => {
+            if (isDrawing) {
+                setMousePos(getRelativePos());
+            }
+        };
 
-  return (
-    <>
-      {pointsRef.current.length >= 1 && (
-        <Line
-          points={currentLinePoints}
-          stroke={selectedClass.color}
-          strokeWidth={2}
-          closed={false}
-          fillEnabled={false}
-        />
-      )}
-      {pointsRef.current.map((p, index) => (
-        <Circle
-          key={index}
-          x={(p.x * imageFit.scale) + imageFit.x}
-          y={(p.y * imageFit.scale) + imageFit.y}
-          radius={5}
-          fill={index === 0 ? selectedClass.color : "white"}
-          stroke={selectedClass.color}
-          strokeWidth={2}
-        />
-      ))}
-    </>
-  );
+        // --- TUZATISH: Hotkey'dan kelgan maxsus hodisani eshitish ---
+        const handleFinishEvent = () => {
+            if (isDrawing && activeTool === 'polygon') {
+                finishDrawing();
+            }
+        };
+
+        stage.on('click', handleClick);
+        stage.on('mousemove', handleMouseMove);
+        document.addEventListener('finish-polygon', handleFinishEvent);
+
+        return () => {
+            stage.off('click', handleClick);
+            stage.off('mousemove', handleMouseMove);
+            document.removeEventListener('finish-polygon', handleFinishEvent);
+        };
+    }, [activeTool, points, isDrawing, selectedClass, imageUrl, addAnnotation, setIsDrawing, stageRef, annotationsLayerRef]);
+
+    if (activeTool !== 'polygon' || points.length === 0) return null;
+
+    const flattenedPoints = isDrawing ? [...points, mousePos.x, mousePos.y] : points;
+
+    return (
+        <React.Fragment>
+            <Line
+                points={flattenedPoints}
+                stroke={selectedClass?.color || 'white'}
+                strokeWidth={2}
+                closed={!isDrawing}
+                fill={!isDrawing ? (selectedClass?.color + '55') : undefined}
+                listening={false}
+            />
+            {isDrawing && points.map((_, i) => i % 2 === 0 && (
+                <Circle
+                    key={i}
+                    x={points[i]}
+                    y={points[i+1]}
+                    radius={i === 0 ? 6 : 4}
+                    fill={selectedClass?.color || 'white'}
+                    listening={false}
+                />
+            ))}
+        </React.Fragment>
+    );
 };
 
 export default PolygonDrawer;

@@ -7,7 +7,7 @@ frontend/
 │   │   └── Input.jsx
 │   ├── core/               # Loyihaning asosiy mantig'i va global holatlari
 │   │   ├── constants.js    # Barcha global konstantalar, masalan, tool typelar, class typelar
-│   │   ├── data.js         # Loyihaning asosiy ma'lumotlar obyekti, annotatsiyalar ro'yxati, rasm ma'lumotlari va ularni boshqarish logikasi (state)
+│   │   ├── helpers.js         # Loyihaning asosiy ma'lumotlar obyekti, annotatsiyalar ro'yxati, rasm ma'lumotlari va ularni boshqarish logikasi (state)
 │   │   └── AnnotationContext.jsx # Yoki Redux/Zustand kabi holat boshqaruvi
 │   ├── drawing/            # Konva.js bilan chizishga oid barcha mantiq
 │   │   ├── AnnotationDrawer.jsx # Kanvasni va Konva.js komponentlarini render qiluvchi asosiy komponent

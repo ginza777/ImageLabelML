@@ -1,31 +1,56 @@
-import { useEffect } from 'react';
-import { useAnnotation } from '../../core/AnnotationContext.jsx';
-import { generateId, print_log } from '../../data.js';
+import React, { useEffect, useContext } from "react";
+import { AnnotationContext } from "../../core/AnnotationContext";
+import { generateId } from "../../utils/helpers";
 
-const PointDrawer = ({ mouseEvent, imageFit, selectedClass, onDrawComplete }) => {
-  const { activeTool, addAnnotation } = useAnnotation();
+const PointDrawer = ({ stageRef, annotationsLayerRef }) => {
+  const {
+    activeTool,
+    selectedClass,
+    imageUrl,
+    addAnnotation,
+  } = useContext(AnnotationContext);
 
   useEffect(() => {
-    if (!mouseEvent || mouseEvent.type !== 'click' || !mouseEvent.payload.empty || activeTool !== 'point' || !selectedClass) return;
-    const pos = mouseEvent.payload.pos;
-    if (pos.x < imageFit.x || pos.x > imageFit.x + imageFit.width || pos.y < imageFit.y || pos.y > imageFit.y + imageFit.height) return;
+    // "Point" asbobi tanlanmagan bo'lsa, funksiyadan chiqib ketish
+    if (activeTool !== "point") return;
 
-    const xInImage = (pos.x - imageFit.x) / imageFit.scale;
-    const yInImage = (pos.y - imageFit.y) / imageFit.scale;
-    const newAnnotation = {
-      id: generateId(),
-      tool: 'point',
-      class: selectedClass.name,
-      x: xInImage,
-      y: yInImage,
-      radius: 5,
-      fill: selectedClass.color
+    const stage = stageRef.current;
+    const layer = annotationsLayerRef.current; // To'g'ri qatlamni olamiz
+
+    // Kerakli ma'lumotlar mavjudligini tekshirish
+    if (!stage || !layer || !selectedClass) return;
+
+    const handleClick = (e) => {
+      // Faqat rasm ustidagi bo'sh joyga bosilganda ishlasin
+      if (e.target !== stage) return;
+
+      // Koordinatalarni chizish qatlamiga nisbatan olamiz
+      const pos = layer.getRelativePointerPosition();
+      if(!pos) return;
+
+      // Annotatsiyani to'g'ri formatda yaratish
+      const annotation = {
+        id: generateId(),
+        type: "point",
+        x: pos.x, // "x" xususiyati
+        y: pos.y, // "y" xususiyati
+        class: selectedClass.name,
+        color: selectedClass.color,
+        imageId: imageUrl,
+      };
+      addAnnotation(annotation);
     };
-    addAnnotation(newAnnotation);
-    onDrawComplete();
-    print_log("Point added:", { x: xInImage, y: yInImage });
-  }, [mouseEvent, activeTool, selectedClass, imageFit, addAnnotation, onDrawComplete]);
 
+    // "mousedown" hodisasini eshitish
+    stage.on("mousedown", handleClick);
+
+    // Komponent o'chirilganda hodisani olib tashlash
+    return () => {
+      stage.off("mousedown", handleClick);
+    };
+  }, [activeTool, selectedClass, imageUrl, addAnnotation, stageRef, annotationsLayerRef]);
+
+  // Bu komponent hech narsa render qilmaydi
   return null;
 };
 
