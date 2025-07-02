@@ -1,20 +1,13 @@
-// src/drawing/tools/BoxDrawer.jsx
-import React, { useEffect, useState, useContext, useRef } from "react"; // useRef import qilindi
-import { Rect } from "react-konva";
-import { AnnotationContext } from "../../core/AnnotationContext";
-import { generateId } from "../../utils/helpers";
+import React, { useEffect, useState, useContext, useRef } from 'react';
+import { Rect } from 'react-konva';
+import { AnnotationContext } from '../../core/AnnotationContext';
+import { generateId } from '../../utils/helpers';
 
 const BoxDrawer = ({ stageRef, annotationsLayerRef }) => {
-  const {
-    activeTool,
-    selectedClass,
-    imageUrl,
-    addAnnotation,
-  } = useContext(AnnotationContext);
-
+  const { activeTool, selectedClass, imageUrl, addAnnotation, transform } = useContext(AnnotationContext);
   const [isDrawing, setIsDrawing] = useState(false);
   const [box, setBox] = useState(null);
-  const startPointRef = useRef({ x: 0, y: 0 }); // --- TUZATISH: Boshlang'ich nuqtani saqlash uchun useRef ishlatamiz
+  const startPointRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     if (activeTool !== 'box') {
@@ -25,20 +18,23 @@ const BoxDrawer = ({ stageRef, annotationsLayerRef }) => {
 
     const stage = stageRef.current;
     const layer = annotationsLayerRef.current;
-    if (!stage || !layer || !selectedClass) return;
+    if (!stage || !layer || !selectedClass || transform.scale === 0) return;
+
+    const getBoundedPos = (pos) => ({
+      x: Math.min(Math.max(pos.x, 0), transform.originalWidth * transform.scale),
+      y: Math.min(Math.max(pos.y, 0), transform.originalHeight * transform.scale),
+    });
 
     const handleMouseDown = (e) => {
       if (e.target !== stage) return;
       setIsDrawing(true);
-      // --- TUZATISH: Boshlang'ich nuqtani ref.current ga saqlaymiz
-      startPointRef.current = layer.getRelativePointerPosition() || { x: 0, y: 0 };
+      startPointRef.current = getBoundedPos(layer.getRelativePointerPosition() || { x: 0, y: 0 });
       setBox({ x: startPointRef.current.x, y: startPointRef.current.y, width: 0, height: 0 });
     };
 
     const handleMouseMove = (e) => {
       if (!isDrawing) return;
-      const currentPoint = layer.getRelativePointerPosition() || { x: 0, y: 0 };
-      // --- TUZATISH: ref.current dan to'g'ri boshlang'ich nuqtani olamiz
+      const currentPoint = getBoundedPos(layer.getRelativePointerPosition() || { x: 0, y: 0 });
       setBox({
         x: startPointRef.current.x,
         y: startPointRef.current.y,
@@ -57,15 +53,21 @@ const BoxDrawer = ({ stageRef, annotationsLayerRef }) => {
       }
 
       const normalizedBox = {
-        x: box.width > 0 ? box.x : box.x + box.width,
-        y: box.height > 0 ? box.y : box.y + box.height,
-        width: Math.abs(box.width),
-        height: Math.abs(box.height),
+        x: Math.min(
+          Math.max(box.width > 0 ? box.x / transform.scale : (box.x + box.width) / transform.scale, 0),
+          transform.originalWidth
+        ),
+        y: Math.min(
+          Math.max(box.height > 0 ? box.y / transform.scale : (box.y + box.height) / transform.scale, 0),
+          transform.originalHeight
+        ),
+        width: Math.abs(box.width) / transform.scale,
+        height: Math.abs(box.height) / transform.scale,
       };
 
       const annotation = {
         id: generateId(),
-        type: "box",
+        type: 'box',
         ...normalizedBox,
         class: selectedClass.name,
         color: selectedClass.color,
@@ -76,16 +78,16 @@ const BoxDrawer = ({ stageRef, annotationsLayerRef }) => {
       setBox(null);
     };
 
-    stage.on("mousedown", handleMouseDown);
-    stage.on("mousemove", handleMouseMove);
-    stage.on("mouseup", handleMouseUp);
+    stage.on('mousedown', handleMouseDown);
+    stage.on('mousemove', handleMouseMove);
+    stage.on('mouseup', handleMouseUp);
 
     return () => {
-      stage.off("mousedown", handleMouseDown);
-      stage.off("mousemove", handleMouseMove);
-      stage.off("mouseup", handleMouseUp);
+      stage.off('mousedown', handleMouseDown);
+      stage.off('mousemove', handleMouseMove);
+      stage.off('mouseup', handleMouseUp);
     };
-  }, [activeTool, isDrawing, box, selectedClass, imageUrl, addAnnotation, stageRef, annotationsLayerRef]);
+  }, [activeTool, isDrawing, box, selectedClass, imageUrl, addAnnotation, stageRef, annotationsLayerRef, transform]);
 
   if (!box) return null;
 
@@ -95,7 +97,7 @@ const BoxDrawer = ({ stageRef, annotationsLayerRef }) => {
       y={box.y}
       width={box.width}
       height={box.height}
-      stroke={selectedClass?.color || "blue"}
+      stroke={selectedClass?.color || 'blue'}
       strokeWidth={2}
       dash={[4, 4]}
       listening={false}

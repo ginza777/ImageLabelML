@@ -1,6 +1,6 @@
 // src/drawing/canvas/AnnotationCanvas.jsx
 import { useRef, useEffect } from 'react';
-import { Stage, Layer, Image as KonvaImage } from 'react-konva';
+import { Stage, Layer, Image as KonvaImage } from 'react-konva'; // Layer ham import qilinganligiga ishonch hosil qiling
 import useImage from 'use-image';
 import { useAnnotation } from '../../core/AnnotationContext.jsx';
 import AnnotationRenderer from '../AnnotationRenderer.jsx';
@@ -11,94 +11,121 @@ import PointDrawer from '../tools/PointDrawer.jsx';
 import ArrowDrawer from '../tools/ArrowDrawer.jsx';
 
 function AnnotationCanvas() {
-    const stageRef = useRef(null);
-    const annotationsLayerRef = useRef(null);
+  const stageRef = useRef(null);
+  const annotationsLayerRef = useRef(null);
 
-    const {
-        imageUrl,
-        setImageObject,
-        handleSelectAnnotation, // <-- YANGI MARKAZIY FUNKSIYANI OLAMIZ
-        activeTool,
-        transform,
-        setTransform
-    } = useAnnotation();
+  const {
+    imageUrl,
+    setImageObject,
+    handleSelectAnnotation,
+    activeTool,
+    transform,
+    setTransform,
+  } = useAnnotation();
 
-    const [image] = useImage(imageUrl, 'anonymous');
+  // useImage hookidan rasm yuklash uchun foydalanamiz
+  const [image] = useImage(imageUrl, 'anonymous');
 
-    useEffect(() => {
-        if (image && stageRef.current) {
-            setImageObject(image);
-            const stage = stageRef.current;
-            const container = stage.container().parentElement;
-            const stageWidth = container.offsetWidth;
-            const stageHeight = container.offsetHeight;
+// AnnotationCanvas.jsx ichidagi useEffect() funksiyasi
+useEffect(() => {
+  if (image && stageRef.current) {
+    // ... (boshqa kodlar)
 
-            const scale = Math.min(stageWidth / image.width, stageHeight / image.height, 1);
+    const stage = stageRef.current;
+    const container = stage.container().parentElement;
+    const containerWidth = container.offsetWidth;
+    const containerHeight = container.offsetHeight;
 
-            setTransform({
-                x: (stageWidth - image.width * scale) / 2,
-                y: (stageHeight - image.height * scale) / 2,
-                scale: scale
-            });
-        }
-    }, [image, setImageObject, setTransform]);
+    const scale = Math.min(containerWidth / image.width, containerHeight / image.height);
 
-    // --- TUZATISH: Stage bosilganda tanlovni bekor qilish uchun yangilangan mantiq ---
-    const handleStageClick = (e) => {
-        // Agar bosilgan joy Stage'ning o'zi bo'lsa (biror shakl emas), tanlovni bekor qilish
-        if (e.target === e.currentTarget) {
-            handleSelectAnnotation(null);
-        }
+    stage.width(containerWidth);
+    stage.height(containerHeight);
+
+    const scaledWidth = image.width * scale;
+    const scaledHeight = image.height * scale;
+    const xOffset = (containerWidth - scaledWidth) / 2;
+    const yOffset = (containerHeight - scaledHeight) / 2;
+
+    const newTransform = {
+      x: xOffset,
+      y: yOffset,
+      scale: scale,
+      originalWidth: image.width,
+      originalHeight: image.height,
     };
 
-    return (
-        <div className="w-full h-full flex items-center justify-center bg-gray-900">
-            <Stage
-                width={window.innerWidth * 0.55} // Kenglikni moslashuvchan qilish
-                height={window.innerHeight * 0.8} // Balandlikni moslashuvchan qilish
-                ref={stageRef}
-                style={{
-                    border: '1px solid #4A5568',
-                    cursor: activeTool === 'select' ? 'default' : 'crosshair'
-                }}
-                onClick={handleStageClick}
-                onTap={handleStageClick} // Sensorli ekranlar uchun
-            >
-                {/* Rasm qatlami */}
-                <Layer
-                    name="image-layer"
-                    x={transform.x}
-                    y={transform.y}
-                    scaleX={transform.scale}
-                    scaleY={transform.scale}
-                >
-                    {image && (
-                        <KonvaImage image={image} name="image" listening={false} />
-                    )}
-                </Layer>
+    // Quyidagi console.log buyruqlari
+    console.log("1. Konteyner o'lchamlari (ota elementdan):", containerWidth, containerHeight);
+    console.log("2. Rasmning asl o'lchamlari:", image.width, image.height);
+    console.log("3. Hisoblangan Masshtab (Scale):", scale);
+    console.log("4. Stage belgilangan o'lchamlar:", stage.width(), stage.height());
+    console.log("5. Masshtablangan rasm o'lchamlari:", scaledWidth, scaledHeight);
+    console.log("6. Hisoblangan siljishlar (xOffset, yOffset):", xOffset, yOffset);
+    console.log("7. Yakuniy newTransform obyekti:", newTransform);
 
-                {/* Annotatsiyalar qatlami */}
-                <Layer
-                    ref={annotationsLayerRef}
-                    name="annotations-layer"
-                    x={transform.x}
-                    y={transform.y}
-                    scaleX={transform.scale}
-                    scaleY={transform.scale}
-                >
-                    {/* --- TUZATISH: `onSelect` prop'iga yangi funksiyani uzatish --- */}
-                    <AnnotationRenderer onSelect={handleSelectAnnotation} />
+    setTransform(newTransform);
+    stage.batchDraw();
+  }
+}, [image, setImageObject, setTransform]);
 
-                    {/* Chizish asboblari */}
-                    <SelectTool stageRef={stageRef} />
-                    <PolygonDrawer stageRef={stageRef} annotationsLayerRef={annotationsLayerRef} />
-                    <BoxDrawer stageRef={stageRef} annotationsLayerRef={annotationsLayerRef} />
-                    <PointDrawer stageRef={stageRef} annotationsLayerRef={annotationsLayerRef} />
-                    <ArrowDrawer stageRef={stageRef} annotationsLayerRef={annotationsLayerRef} />
-                </Layer>
-            </Stage>
-        </div>
-    );
+  const handleStageClick = (e) => {
+    // Agar stage ning o'ziga bosilsa, tanlangan annotatsiyani bekor qilish
+    if (e.target === e.currentTarget) {
+      handleSelectAnnotation(null);
+    }
+  };
+
+  return (
+      // "flex items-center justify-center" klasslari olib tashlandi
+      <div className="w-full h-full bg-gray-900"
+           style={{overflow: 'auto', position: 'relative'}}>
+          <Stage
+              ref={stageRef}
+    style={{
+        border: '5px solid yellow', // Bu Stage ning o'ziga chegara beradi
+        cursor: activeTool === 'select' ? 'default' : 'crosshair',
+    }}
+              onClick={handleStageClick}
+              onTap={handleStageClick}
+          >
+              <Layer
+                  name="image-layer"
+                  x={transform.x} // Rasm joylashuvini transformatsiya orqali boshqarish
+                  y={transform.y}
+                  scaleX={transform.scale}
+                  scaleY={transform.scale}
+              >
+                  {image && (
+                      <KonvaImage
+                          image={image}
+                          name="image"
+                          listening={false}
+                          width={image.width} // Asl kenglik (Layer allaqachon scaled)
+                          height={image.height} // Asl balandlik (Layer allaqachon scaled)
+                          stroke="red" // Rasmning o'ziga chegara (oldin aytganimizdek)
+                          strokeWidth={10}
+                      />
+                  )}
+              </Layer>
+
+              <Layer
+                  ref={annotationsLayerRef}
+                  name="annotations-layer"
+                  x={transform.x} // Annotatsiya layerini ham rasm bilan birga siljitish
+                  y={transform.y}
+                  scaleX={transform.scale}
+                  scaleY={transform.scale}
+              >
+                  <AnnotationRenderer onSelect={handleSelectAnnotation}/>
+                  <SelectTool stageRef={stageRef}/>
+                  <PolygonDrawer stageRef={stageRef} annotationsLayerRef={annotationsLayerRef}/>
+                  <BoxDrawer stageRef={stageRef} annotationsLayerRef={annotationsLayerRef}/>
+                  <PointDrawer stageRef={stageRef} annotationsLayerRef={annotationsLayerRef}/>
+                  <ArrowDrawer stageRef={stageRef} annotationsLayerRef={annotationsLayerRef}/>
+              </Layer>
+          </Stage>
+      </div>
+  );
 }
 
 export default AnnotationCanvas;

@@ -1,39 +1,35 @@
-import React, { useEffect, useContext } from "react";
-import { AnnotationContext } from "../../core/AnnotationContext";
-import { generateId } from "../../utils/helpers";
+import React, { useEffect, useContext } from 'react';
+import { AnnotationContext } from '../../core/AnnotationContext';
+import { generateId } from '../../utils/helpers';
 
 const PointDrawer = ({ stageRef, annotationsLayerRef }) => {
-  const {
-    activeTool,
-    selectedClass,
-    imageUrl,
-    addAnnotation,
-  } = useContext(AnnotationContext);
+  const { activeTool, selectedClass, imageUrl, addAnnotation, transform } = useContext(AnnotationContext);
 
   useEffect(() => {
-    // "Point" asbobi tanlanmagan bo'lsa, funksiyadan chiqib ketish
-    if (activeTool !== "point") return;
+    if (activeTool !== 'point') return;
 
     const stage = stageRef.current;
-    const layer = annotationsLayerRef.current; // To'g'ri qatlamni olamiz
+    const layer = annotationsLayerRef.current;
 
-    // Kerakli ma'lumotlar mavjudligini tekshirish
-    if (!stage || !layer || !selectedClass) return;
+    if (!stage || !layer || !selectedClass || transform.scale === 0) return;
 
     const handleClick = (e) => {
-      // Faqat rasm ustidagi bo'sh joyga bosilganda ishlasin
       if (e.target !== stage) return;
 
-      // Koordinatalarni chizish qatlamiga nisbatan olamiz
       const pos = layer.getRelativePointerPosition();
-      if(!pos) return;
+      if (!pos) return;
 
-      // Annotatsiyani to'g'ri formatda yaratish
+      // Normalize coordinates to original image size
+      const normalizedPos = {
+        x: Math.min(Math.max(pos.x / transform.scale, 0), transform.originalWidth),
+        y: Math.min(Math.max(pos.y / transform.scale, 0), transform.originalHeight),
+      };
+
       const annotation = {
         id: generateId(),
-        type: "point",
-        x: pos.x, // "x" xususiyati
-        y: pos.y, // "y" xususiyati
+        type: 'point',
+        x: normalizedPos.x,
+        y: normalizedPos.y,
         class: selectedClass.name,
         color: selectedClass.color,
         imageId: imageUrl,
@@ -41,16 +37,13 @@ const PointDrawer = ({ stageRef, annotationsLayerRef }) => {
       addAnnotation(annotation);
     };
 
-    // "mousedown" hodisasini eshitish
-    stage.on("mousedown", handleClick);
+    stage.on('mousedown', handleClick);
 
-    // Komponent o'chirilganda hodisani olib tashlash
     return () => {
-      stage.off("mousedown", handleClick);
+      stage.off('mousedown', handleClick);
     };
-  }, [activeTool, selectedClass, imageUrl, addAnnotation, stageRef, annotationsLayerRef]);
+  }, [activeTool, selectedClass, imageUrl, addAnnotation, stageRef, annotationsLayerRef, transform]);
 
-  // Bu komponent hech narsa render qilmaydi
   return null;
 };
 
