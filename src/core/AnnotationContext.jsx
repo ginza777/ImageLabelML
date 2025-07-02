@@ -1,5 +1,4 @@
 // src/core/AnnotationContext.jsx
-
 import { createContext, useContext, useState } from 'react';
 import { generateId } from '../utils/helpers.js';
 import {
@@ -33,6 +32,7 @@ export const AnnotationProvider = ({ children }) => {
     const [isDrawing, setIsDrawing] = useState(false);
     const [selectedAnnotationId, setSelectedAnnotationId] = useState(null);
     const [imageUrl, setImageUrl] = useState(null);
+    const [imageFilename, setImageFilename] = useState(null); // <-- YANGI STATE
     const [imageObject, setImageObject] = useState(null);
     const [imageStatus, setImageStatus] = useState(null);
     const [imageError, setImageError] = useState('');
@@ -60,20 +60,24 @@ export const AnnotationProvider = ({ children }) => {
     const addAnnotation = (data) => { setAnnotations((prev) => [...prev, { ...data, id: data.id || generateId() }]); };
     const deleteAnnotation = (id) => { setAnnotations((prev) => prev.filter((ann) => ann.id !== id)); };
     const updateAnnotation = (updatedAnnotation) => {
-console.log("updateAnnotation funksiyasiga kelgan ma'lumot:", updatedAnnotation);
-
-        setAnnotations(prev => prev.map(ann => ann.id === updatedAnnotation.id ? { ...ann, ...updatedAnnotation } : ann)); };
+        setAnnotations(prev => prev.map(ann => ann.id === updatedAnnotation.id ? { ...ann, ...updatedAnnotation } : ann));
+    };
     const clearAnnotations = () => setAnnotations([]);
+
+    // --- TUZATISH: loadImage funksiyasi fayl nomini eslab qoladi ---
     const loadImage = (source) => {
         setImageStatus('loading');
         setImageError('');
+        setAnnotations([]); // Yangi rasm yuklanganda eski annotatsiyalarni tozalash
         try {
-            if (typeof source === 'string') {
+            if (typeof source === 'string') { // URL orqali yuklash
                 if (!source.startsWith('http')) throw new Error("URL manzili noto'g'ri.");
                 setImageUrl(source);
+                setImageFilename(source.split('/').pop().split('?')[0] || 'image.jpg');
                 setImageStatus('success');
-            } else if (source instanceof File) {
+            } else if (source instanceof File) { // Kompyuterdan fayl yuklash
                 setImageUrl(URL.createObjectURL(source));
+                setImageFilename(source.name); // Faylning asl nomini saqlab qolish
                 setImageStatus('success');
             }
         } catch (error) {
@@ -90,7 +94,7 @@ console.log("updateAnnotation funksiyasiga kelgan ma'lumot:", updatedAnnotation)
         availableToolIcons,
         isDrawing, setIsDrawing,
         selectedAnnotationId, setSelectedAnnotationId,
-        imageUrl, loadImage, imageStatus, imageError,
+        imageUrl, loadImage, imageStatus, imageError, imageFilename, // <-- imageFilename'ni eksport qilish
         imageObject, setImageObject,
         transform, setTransform,
     };
@@ -101,7 +105,5 @@ console.log("updateAnnotation funksiyasiga kelgan ma'lumot:", updatedAnnotation)
         </AnnotationContext.Provider>
     );
 };
-
-
 
 export const useAnnotation = () => useContext(AnnotationContext);
