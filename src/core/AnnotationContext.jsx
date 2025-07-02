@@ -1,5 +1,5 @@
 // src/core/AnnotationContext.jsx
-import { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { generateId } from '../utils/helpers.js';
 import {
     faMousePointer, faSquare, faDrawPolygon, faCircleDot, faArrowRight,
@@ -32,7 +32,7 @@ export const AnnotationProvider = ({ children }) => {
     const [isDrawing, setIsDrawing] = useState(false);
     const [selectedAnnotationId, setSelectedAnnotationId] = useState(null);
     const [imageUrl, setImageUrl] = useState(null);
-    const [imageFilename, setImageFilename] = useState(null); // <-- YANGI STATE
+    const [imageFilename, setImageFilename] = useState(null); // Rasm nomini saqlash uchun
     const [imageObject, setImageObject] = useState(null);
     const [imageStatus, setImageStatus] = useState(null);
     const [imageError, setImageError] = useState('');
@@ -42,11 +42,34 @@ export const AnnotationProvider = ({ children }) => {
         if (classObj) {
             setSelectedClass(classObj);
             setActiveTool(classObj.tool);
+            setSelectedAnnotationId(null); // Yangi chizishni boshlash uchun tanlovni bekor qilish
         } else {
             setSelectedClass(null);
             setActiveTool('select');
         }
     };
+
+    // --- YANGI FUNKSIYA: Annotatsiyani tanlashni markazlashtirish ---
+    const handleSelectAnnotation = (annotationId) => {
+        // Agar ID berilmasa (masalan, bo'sh joy bosilsa), tanlovni bekor qilish
+        if (!annotationId) {
+            setSelectedAnnotationId(null);
+            return;
+        }
+
+        const annotation = annotations.find(ann => ann.id === annotationId);
+        if (annotation) {
+            // Annotatsiyaning klassini topib, chap paneldagi ro'yxatda tanlangan holatga keltirish
+            const classObj = objectClasses.find(cls => cls.name === annotation.class);
+            if (classObj) {
+                setSelectedClass(classObj);
+            }
+            // Har doim "Select" asbobiga o'tish va annotatsiya ID'sini saqlash
+            setActiveTool('select');
+            setSelectedAnnotationId(annotationId);
+        }
+    };
+
 
     const deleteObjectClass = (classNameToDelete) => {
         const newClasses = objectClasses.filter(cls => cls.name !== classNameToDelete);
@@ -58,26 +81,35 @@ export const AnnotationProvider = ({ children }) => {
 
     const addObjectClass = (newClass) => { setObjectClasses(prev => [...prev, newClass]); };
     const addAnnotation = (data) => { setAnnotations((prev) => [...prev, { ...data, id: data.id || generateId() }]); };
-    const deleteAnnotation = (id) => { setAnnotations((prev) => prev.filter((ann) => ann.id !== id)); };
+    const deleteAnnotation = (id) => {
+        if (selectedAnnotationId === id) {
+            setSelectedAnnotationId(null); // O'chirilayotgan annotatsiya tanlangan bo'lsa, tanlovni bekor qilish
+        }
+        setAnnotations((prev) => prev.filter((ann) => ann.id !== id));
+    };
     const updateAnnotation = (updatedAnnotation) => {
         setAnnotations(prev => prev.map(ann => ann.id === updatedAnnotation.id ? { ...ann, ...updatedAnnotation } : ann));
     };
-    const clearAnnotations = () => setAnnotations([]);
+    const clearAnnotations = () => {
+        setAnnotations([]);
+        setSelectedAnnotationId(null);
+    };
 
-    // --- TUZATISH: loadImage funksiyasi fayl nomini eslab qoladi ---
+    // --- YANGILANGAN FUNKSIYA: Fayl nomini eslab qoladi ---
     const loadImage = (source) => {
         setImageStatus('loading');
         setImageError('');
-        setAnnotations([]); // Yangi rasm yuklanganda eski annotatsiyalarni tozalash
+        setAnnotations([]);
+        setSelectedAnnotationId(null);
         try {
-            if (typeof source === 'string') { // URL orqali yuklash
+            if (typeof source === 'string') {
                 if (!source.startsWith('http')) throw new Error("URL manzili noto'g'ri.");
                 setImageUrl(source);
                 setImageFilename(source.split('/').pop().split('?')[0] || 'image.jpg');
                 setImageStatus('success');
-            } else if (source instanceof File) { // Kompyuterdan fayl yuklash
+            } else if (source instanceof File) {
                 setImageUrl(URL.createObjectURL(source));
-                setImageFilename(source.name); // Faylning asl nomini saqlab qolish
+                setImageFilename(source.name);
                 setImageStatus('success');
             }
         } catch (error) {
@@ -93,8 +125,9 @@ export const AnnotationProvider = ({ children }) => {
         activeTool, setActiveTool,
         availableToolIcons,
         isDrawing, setIsDrawing,
-        selectedAnnotationId, setSelectedAnnotationId,
-        imageUrl, loadImage, imageStatus, imageError, imageFilename, // <-- imageFilename'ni eksport qilish
+        selectedAnnotationId,
+        handleSelectAnnotation, // Tanlash uchun yangi markaziy funksiya
+        imageUrl, loadImage, imageStatus, imageError, imageFilename, // Rasm nomi qo'shildi
         imageObject, setImageObject,
         transform, setTransform,
     };

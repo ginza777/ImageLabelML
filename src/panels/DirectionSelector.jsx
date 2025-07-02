@@ -1,3 +1,5 @@
+// src/components/DirectionSelector.jsx
+
 import React from "react";
 import { useAnnotation } from "../core/AnnotationContext.jsx";
 
@@ -12,8 +14,9 @@ const DirectionSelector = () => {
     const { annotations, selectedAnnotationId, updateAnnotation } = useAnnotation();
     const selectedAnnotation = annotations.find(a => a.id === selectedAnnotationId);
 
-    // Faqat arrow annotation tanlansa, select aktiv bo‘ladi
-    const canEdit = selectedAnnotation && selectedAnnotation.tool === "arrow";
+    // --- TUZATISH: Annotatsiya turini ".type" maydonidan tekshirish ---
+    // Faqat "arrow" turidagi annotatsiya tanlansa, select aktiv bo‘ladi
+    const canEdit = selectedAnnotation && selectedAnnotation.type === "arrow";
 
     return (
         <div className="w-full flex justify-center mt-3 mb-1">
