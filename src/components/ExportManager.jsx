@@ -4,7 +4,6 @@ import { saveAs } from 'file-saver';
 import { useAnnotation } from '../core/AnnotationContext.jsx';
 
 const ExportManager = () => {
-  // --- TUZATISH: Kontekstdan "imageFilename"ni olamiz ---
   const { annotations, imageObject, imageFilename } = useAnnotation();
 
   const createMetadata = () => {
@@ -12,24 +11,44 @@ const ExportManager = () => {
       alert("Iltimos, avval rasm yuklang!");
       return null;
     }
+
     return {
       image: {
         width: imageObject.naturalWidth,
         height: imageObject.naturalHeight,
-        // --- TUZATISH: To'g'ri fayl nomidan foydalanish ---
         filename: imageFilename || "image.jpg"
       },
       annotations: annotations.map((ann) => {
+
+        // --- YANGI QISM: Relation ID'sini class nomiga o'girish ---
+        let relationClassName = null;
+        if (ann.relation) { // Agar relation ID mavjud bo'lsa
+            // Barcha annotatsiyalar ichidan shu ID'li annotatsiyani topamiz
+            const relatedAnnotation = annotations.find(a => a.id === ann.relation);
+            if (relatedAnnotation) {
+                // Agar topilsa, uning class nomini olamiz
+                relationClassName = relatedAnnotation.class;
+            }
+        }
+
+        // Har bir annotatsiya uchun umumiy ma'lumotlar
         const baseAnnotation = {
-          id: ann.id, type: ann.type, class: ann.class,
-          direction: ann.direction || null, relation: ann.relation || null
+          id: ann.id,
+          type: ann.type,
+          class: ann.class,
+          direction: ann.direction || null,
+          relationType: ann.relationType || null, // bog'liqlik turi
+          relation: relationClassName, // <-- Endi bu yerda class nomi saqlanadi
         };
+
+        // Annotatsiya turiga qarab maxsus maydonlarni qo'shish
         switch (ann.type) {
           case 'box':
             return { ...baseAnnotation, x: ann.x, y: ann.y, width: ann.width, height: ann.height };
           case 'point':
             return { ...baseAnnotation, x: ann.x, y: ann.y };
-          case 'polygon': case 'arrow':
+          case 'polygon':
+          case 'arrow':
             return { ...baseAnnotation, points: ann.points };
           default:
             return baseAnnotation;
@@ -47,6 +66,7 @@ const ExportManager = () => {
   };
 
   const handleExportZip = async () => {
+    // Bu funksiya o'zgarishsiz qoladi
     if (!imageObject) return alert("Iltimos, avval rasm yuklang!");
     const meta = createMetadata();
     if (!meta) return;
@@ -60,7 +80,6 @@ const ExportManager = () => {
       ctx.drawImage(imageObject, 0, 0);
       const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
       if (imageBlob) {
-        // --- TUZATISH: Bu yerda ham to'g'ri nom ishlatiladi ---
         zip.file(meta.image.filename, imageBlob);
       } else {
         throw new Error("Canvas'dan rasm ma'lumotini olishda xatolik.");
